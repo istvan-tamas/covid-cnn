@@ -3,3 +3,7 @@
 images/
 .vscode
 .ipynb_checkpoints
+3A_images
+*.zip
+*.h5
+*.txt
