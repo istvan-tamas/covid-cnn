@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
 from torchvision import transforms
+from support.LMDB import LMDBDataset
 
 NUM_FOLDS = 5
 NUM_CLASSES = 3
