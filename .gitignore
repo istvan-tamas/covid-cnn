@@ -8,6 +8,6 @@ images/
 *.h5
 *.txt
 lmdbs
-lmdbs.bak
 original-zips
 *.pth
+*.lmdb
