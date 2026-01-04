@@ -192,7 +192,3 @@ test_loader = torch.utils.data.DataLoader(
 preds, probs, acc = run_inception_ensemble(test_loader)
 
 print(f"Inception-ResNet-V2 Ensemble Accuracy: {acc:.4f}")
-
-
-
-
