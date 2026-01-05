@@ -3,7 +3,10 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
 from torchvision import transforms
+from torchvision.models import alexnet, AlexNet_Weights
 from support.LMDB import LMDBDataset
+
+torch.backends.cudnn.benchmark = True
 
 NUM_FOLDS = 5
 NUM_CLASSES = 3
@@ -11,17 +14,14 @@ BATCH_SIZE = 128
 EPOCHS = 15
 LR = 1e-4
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
-torch.backends.cudnn.benchmark = True
 
 LMDB_ROOT = "./lmdbs"
-
 
 train_transform = transforms.Compose([
     transforms.Resize((224, 224)),
     transforms.RandomHorizontalFlip(),
     transforms.ToTensor(),
 ])
-
 
 val_transform = transforms.Compose([
     transforms.Resize((224, 224)),
@@ -55,8 +55,6 @@ def train_one_epoch(model, loader, optimizer, criterion, scaler):
 
     return running_loss / total, correct / total
 
-
-
 @torch.no_grad()
 def validate(model, val_loader, criterion):
     model.eval()
@@ -68,7 +66,7 @@ def validate(model, val_loader, criterion):
         images = images.to(DEVICE)
         labels = labels.to(DEVICE)
 
-        with torch.cuda.amp.autocast():
+        with torch.amp.autocast("cuda"):
             outputs = model(images)
             loss = criterion(outputs, labels)
 
@@ -78,9 +76,7 @@ def validate(model, val_loader, criterion):
 
     return total_loss / total, correct / total
 
-
-from torchvision.models import alexnet, AlexNet_Weights
-
+# running the model on the folds
 fold_results = []
 
 for fold in range(NUM_FOLDS):
@@ -144,7 +140,12 @@ for fold in range(NUM_FOLDS):
             best_val_acc = val_acc
             torch.save(
                 model.state_dict(),
-                f"alexnet_fold_{fold}.pth"
+                f"./checkpoints/alexnet_fold_{fold}.pth"
             )
 
     fold_results.append(best_val_acc)
+    
+with open('best_val_acc.txt') as f:
+    f.write(best_val_acc)
+
+f.close()
