@@ -182,7 +182,7 @@ for fold in range(NUM_FOLDS):
             no_improve = 0
             torch.save(
                 model.state_dict(),
-                f"./checkpoints/densenet_fold_{fold}.pth"
+                f"checkpoints/densenet_121_fold_{fold}.pth"
             )
         else:
             no_improve += 1

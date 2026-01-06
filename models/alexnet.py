@@ -140,7 +140,7 @@ for fold in range(NUM_FOLDS):
             best_val_acc = val_acc
             torch.save(
                 model.state_dict(),
-                f"./checkpoints/alexnet_fold_{fold}.pth"
+                f"checkpoints/alexnet_fold_{fold}.pth"
             )
 
     fold_results.append(best_val_acc)

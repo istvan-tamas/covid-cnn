@@ -1,18 +1,20 @@
 import torch
-import numpy as np
 from torch import nn
 from torch.optim import AdamW
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torchvision import transforms
 from torchvision.models import densenet201, DenseNet201_Weights
-from torchvision import transforms
 from support.LMDB import LMDBDataset
 
-
-DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+NUM_FOLDS = 5
 NUM_CLASSES = 3
 EPOCHS = 15
+PATIENCE = 4
 BATCH_SIZE = 32
+LMDB_ROOT = "./lmdbs"
+LR = 3e-4
+DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+
 
 train_tf = transforms.Compose([
     transforms.Resize(256),
@@ -34,7 +36,6 @@ val_tf = transforms.Compose([
         std=[0.229, 0.224, 0.225]
     )
 ])
-
 
 
 def create_densenet201():
@@ -69,7 +70,7 @@ def train_one_fold(fold_idx, train_ds, val_ds):
     )
 
     criterion = nn.CrossEntropyLoss()
-    optimizer = AdamW(model.parameters(), lr=3e-4, weight_decay=1e-4)
+    optimizer = AdamW(model.parameters(), lr=LR, weight_decay=1e-4)
     scheduler = ReduceLROnPlateau(
         optimizer, mode="max", patience=2
     )
@@ -131,7 +132,7 @@ def train_one_fold(fold_idx, train_ds, val_ds):
             best_acc = val_acc
             torch.save(
                 model.state_dict(),
-                f"checkpoints/densenet201_fold_{fold_idx}.pt"
+                f"checkpoints/densenet201_fold_{fold_idx}.pth"
             )
 
     return best_acc
@@ -141,84 +142,13 @@ for fold in range(5):
     print(f"\n===== Fold {fold} =====")
 
     train_ds = LMDBDataset(
-        f"./lmdbs/fold_{fold}_train.lmdb",
+        f"{LMDB_ROOT}/fold_{fold}_train.lmdb",
         transform=train_tf
     )
 
     val_ds = LMDBDataset(
-        f"./lmdbs/fold_{fold}_val.lmdb",
+        f"{LMDB_ROOT}/fold_{fold}_val.lmdb",
         transform=val_tf
     )
 
     train_one_fold(fold, train_ds, val_ds)
-
-@torch.no_grad()
-def run_densenet201_ensemble(test_loader):
-    models = []
-
-    for i in range(5):
-        model = densenet201(weights=None)
-        model.classifier = nn.Linear(
-            model.classifier.in_features,
-            NUM_CLASSES
-        )
-
-        model.load_state_dict(
-            torch.load(
-                f"checkpoints/densenet201_fold_{i}.pt",
-                map_location=DEVICE
-            )
-        )
-
-        model.to(DEVICE)
-        model.eval()
-        models.append(model)
-
-    all_probs = []
-    all_labels = []
-
-    for images, labels in test_loader:
-        images = images.to(DEVICE)
-        labels = labels.to(DEVICE)
-
-        fold_probs = []
-
-        for model in models:
-            outputs = model(images)
-            fold_probs.append(
-                torch.softmax(outputs, dim=1)
-            )
-
-        avg_probs = torch.mean(
-            torch.stack(fold_probs), dim=0
-        )
-
-        all_probs.append(avg_probs.cpu())
-        all_labels.append(labels.cpu())
-
-    probs = torch.cat(all_probs)
-    labels = torch.cat(all_labels)
-
-    preds = probs.argmax(1)
-    acc = (preds == labels).float().mean().item()
-
-    return preds.numpy(), probs.numpy(), labels.numpy(), acc
-
-
-test_ds = LMDBDataset(
-    "./lmdbs/test.lmdb",
-    transform=val_tf
-)
-
-test_loader = torch.utils.data.DataLoader(
-    test_ds,
-    batch_size=32,
-    shuffle=False,
-    num_workers=4,
-    pin_memory=True
-)
-
-preds, probs, labels, acc = run_densenet201_ensemble(test_loader)
-
-print(f"DenseNet-201 Ensemble Accuracy: {acc:.4f}")
-
