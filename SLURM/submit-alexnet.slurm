@@ -18,4 +18,4 @@ export HF_HOME=/home/itamas/hpcteszt_scratch/itamas/COVID19-classification/
 
 source ../.venv/bin/activate
 
-srun python3 ./alexnet.py
+python3 ./alexnet.py

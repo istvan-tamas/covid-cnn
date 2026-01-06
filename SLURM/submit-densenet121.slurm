@@ -8,7 +8,7 @@
 #SBATCH --partition=gpu
 #SBATCH --gres=gpu:1
 #SBATCH --nodes=1
-#SBATCH --output=densenet121-train.out
+#SBATCH --output=densenet121-train-1.out
 
 module load cray-python/3.11.7
 module load cuda/12.9

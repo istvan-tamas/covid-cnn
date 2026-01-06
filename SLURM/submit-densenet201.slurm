@@ -17,4 +17,4 @@ export HF_HOME=/home/itamas/hpcteszt_scratch/itamas/COVID19-classification/
 
 source ../.venv/bin/activate
 
-srun python3 ./densenet_201.py
+python3 ./densenet_201.py
