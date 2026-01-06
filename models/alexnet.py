@@ -144,8 +144,3 @@ for fold in range(NUM_FOLDS):
             )
 
     fold_results.append(best_val_acc)
-    
-with open('best_val_acc.txt') as f:
-    f.write(best_val_acc)
-
-f.close()
