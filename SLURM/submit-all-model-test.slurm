@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH -A hpcteszt
-#SBATCH --job-name=resnet-152
+#SBATCH --job-name=all-model-test
 #SBATCH --time=1-00:00:00
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=16
@@ -8,7 +8,7 @@
 #SBATCH --partition=gpu
 #SBATCH --gres=gpu:1
 #SBATCH --nodes=1
-#SBATCH --output=resnet152-train-1.out
+#SBATCH --output=all-model-test.out
 
 module load cray-python/3.11.7
 module load cuda/12.9
@@ -18,4 +18,4 @@ export HF_HOME=/home/itamas/hpcteszt_scratch/itamas/COVID19-classification/
 
 source ../.venv/bin/activate
 
-srun python3 ./resnet_152.py
+python3 ./test_all_models.py

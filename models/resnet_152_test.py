@@ -1,10 +1,12 @@
 import torch
+import numpy as np
 from torch import nn
 from torch.utils.data import DataLoader
 from torchvision import transforms
-from torchvision.models import densenet201
+from torchvision.models import resnet152, ResNet152_Weights
 from sklearn.metrics import confusion_matrix, classification_report
 from collections import Counter
+
 from support.LMDB import LMDBDataset
 
 # ======================
@@ -35,12 +37,10 @@ test_tf = transforms.Compose([
 # ======================
 # LOAD MODEL
 # ======================
-def load_densenet201(ckpt_path):
-    model = densenet201(weights=None)
-    model.classifier = nn.Linear(
-        model.classifier.in_features,
-        NUM_CLASSES
-    )
+def load_resnet152(ckpt_path):
+    # use no pretrained weights for inference
+    model = resnet152(weights=None)
+    model.fc = nn.Linear(model.fc.in_features, NUM_CLASSES)
 
     state = torch.load(ckpt_path, map_location=DEVICE)
     model.load_state_dict(state)
@@ -53,11 +53,11 @@ def load_densenet201(ckpt_path):
 # ENSEMBLE INFERENCE
 # ======================
 @torch.no_grad()
-def run_densenet201_ensemble(test_loader):
+def run_resnet152_ensemble(test_loader):
     models = []
     for i in range(5):
-        ckpt = f"{CHECKPOINT_DIR}/densenet201_fold_{i}.pth"
-        models.append(load_densenet201(ckpt))
+        ckpt = f"{CHECKPOINT_DIR}/resnet152_fold_{i}.pth"
+        models.append(load_resnet152(ckpt))
 
     all_probs = []
     all_labels = []
@@ -100,14 +100,14 @@ def main():
         pin_memory=True
     )
 
-    preds, probs, labels = run_densenet201_ensemble(test_loader)
+    preds, probs, labels = run_resnet152_ensemble(test_loader)
 
     # ======================
     # METRICS
     # ======================
     acc = (preds == labels).mean()
 
-    print("\n===== DenseNet-201 Ensemble Test Results =====")
+    print("\n===== ResNet-152 Ensemble Test Results =====")
     print(f"Test Accuracy: {acc:.6f}\n")
 
     print("Predicted class counts:", Counter(preds))

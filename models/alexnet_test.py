@@ -8,6 +8,7 @@ import pandas as pd
 
 torch.backends.cudnn.benchmark = True
 
+NUM_CLASSES = 3
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 IDX_TO_CLASS = {
@@ -16,14 +17,14 @@ IDX_TO_CLASS = {
     2: "COVID-19"
 }
 
-val_transform = transforms.Compose([
+test_tf = transforms.Compose([
     transforms.Resize((224, 224)),
     transforms.ToTensor(),
 ])
 
 test_dataset = LMDBDataset(
     lmdb_path="./lmdbs/test.lmdb",
-    transform=val_transform
+    transform=test_tf
 )
 
 test_loader = torch.utils.data.DataLoader(
@@ -36,7 +37,7 @@ test_loader = torch.utils.data.DataLoader(
 
 def load_fold_model(weight_path):
     model = alexnet(weights=None)
-    model.classifier[6] = nn.Linear(4096, 3)
+    model.classifier[6] = nn.Linear(4096, NUM_CLASSES)
     model.load_state_dict(torch.load(weight_path, map_location=DEVICE))
     model.to(DEVICE)
     model.eval()
@@ -79,7 +80,7 @@ print(
     classification_report(
         all_labels,
         all_preds,
-        target_names=[IDX_TO_CLASS[i] for i in range(3)]
+        target_names=[IDX_TO_CLASS[i] for i in range(NUM_CLASSES)]
     )
 )
 

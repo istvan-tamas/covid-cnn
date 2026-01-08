@@ -8,6 +8,7 @@
 #SBATCH --partition=gpu
 #SBATCH --gres=gpu:1
 #SBATCH --nodes=1
+#SBATCH --output=inception-resnet-v2-train-1.out
 
 module load cray-python/3.11.7
 module load cuda/12.9
@@ -17,4 +18,4 @@ export HF_HOME=/home/itamas/hpcteszt_scratch/itamas/COVID19-classification/
 
 source ../.venv/bin/activate
 
-srun python3 ./inception_resnet_v2.py
+python3 ./inception_resnet_v2.py

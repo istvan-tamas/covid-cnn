@@ -1,16 +1,30 @@
 import torch
-from torchvision.models import densenet121
-from torchvision import transforms
+import numpy as np
+from torch import nn
 from torch.utils.data import DataLoader
+from torchvision import transforms
+from torchvision.models import densenet121
+from sklearn.metrics import (
+    confusion_matrix,
+    classification_report
+)
 from support.LMDB import LMDBDataset
-from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
-import pandas as pd
 
-torch.backends.cudnn.benchmark = True
-
-NUM_CLASSES = 3
+# ======================
+# CONFIG
+# ======================
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+NUM_CLASSES = 3
+BATCH_SIZE = 32
 
+CLASS_NAMES = ["Normal", "Pneumonia", "COVID-19"]
+
+LMDB_TEST_PATH = "./lmdbs/test.lmdb"
+CHECKPOINT_DIR = "./checkpoints"
+
+# ======================
+# DATA TRANSFORMS
+# ======================
 test_tf = transforms.Compose([
     transforms.Resize(256),
     transforms.CenterCrop(224),
@@ -21,21 +35,33 @@ test_tf = transforms.Compose([
     )
 ])
 
-def load_densenet(checkpoint_path):
+# ======================
+# LOAD MODEL
+# ======================
+def load_densenet121(checkpoint_path):
     model = densenet121(weights=None)
-    model.classifier = torch.nn.Linear(
-        model.classifier.in_features, NUM_CLASSES
+    model.classifier = nn.Linear(
+        model.classifier.in_features,
+        NUM_CLASSES
     )
 
     state = torch.load(checkpoint_path, map_location=DEVICE)
     model.load_state_dict(state)
+
     model.to(DEVICE)
     model.eval()
     return model
 
+# ======================
+# ENSEMBLE TEST
+# ======================
 @torch.no_grad()
-def run_test_ensemble(test_loader, model_paths):
-    models = [load_densenet(p) for p in model_paths]
+def run_densenet121_ensemble(test_loader):
+    models = []
+
+    for i in range(5):
+        ckpt = f"{CHECKPOINT_DIR}/densenet_121_fold_{i}.pt"
+        models.append(load_densenet121(ckpt))
 
     all_probs = []
     all_labels = []
@@ -45,7 +71,6 @@ def run_test_ensemble(test_loader, model_paths):
         labels = labels.to(DEVICE)
 
         fold_probs = []
-
         for model in models:
             outputs = model(images)
             probs = torch.softmax(outputs, dim=1)
@@ -60,24 +85,51 @@ def run_test_ensemble(test_loader, model_paths):
     labels = torch.cat(all_labels)
 
     preds = probs.argmax(dim=1)
-    acc = (preds == labels).float().mean().item()
 
-    return preds.numpy(), probs.numpy(), acc
+    return (
+        preds.numpy(),
+        probs.numpy(),
+        labels.numpy()
+    )
 
-test_ds = LMDBDataset("./lmdbs/test.lmdb", transform=test_tf)
+# ======================
+# MAIN
+# ======================
+def main():
+    test_ds = LMDBDataset(
+        LMDB_TEST_PATH,
+        transform=test_tf
+    )
 
-test_loader = DataLoader(
-    test_ds,
-    batch_size=64,
-    shuffle=False,
-    num_workers=4,
-    pin_memory=True
-)
+    test_loader = DataLoader(
+        test_ds,
+        batch_size=BATCH_SIZE,
+        shuffle=False,
+        num_workers=4,
+        pin_memory=True
+    )
 
-model_paths = [
-    f"./checkpoints/densenet_fold_{i}.pth" for i in range(5)
-]
+    preds, probs, labels = run_densenet121_ensemble(test_loader)
 
-preds, probs, test_acc = run_test_ensemble(test_loader, model_paths)
+    # ===== METRICS =====
+    acc = (preds == labels).mean()
+    cm = confusion_matrix(labels, preds)
+    report = classification_report(
+        labels,
+        preds,
+        target_names=CLASS_NAMES,
+        digits=4
+    )
 
-print(f"Ensemble Test Accuracy: {test_acc:.4f}")
+    print("\n===== DenseNet-121 Ensemble Test Results =====")
+    print(f"Accuracy: {acc:.4f}\n")
+    print("Confusion Matrix:")
+    print(cm)
+    print("\nClassification Report:")
+    print(report)
+    from collections import Counter
+    print("Predicted class counts:", Counter(preds))
+    print("True class counts:", Counter(labels))
+
+if __name__ == "__main__":
+    main()
