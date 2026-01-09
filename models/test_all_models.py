@@ -136,7 +136,7 @@ def main():
         pin_memory=True
     )
 
-    model_fns = {
+    model_files = {
         "alexnet": load_alexnet,
         "densenet_121": load_densenet121,
         "densenet201": load_densenet201,
@@ -144,7 +144,7 @@ def main():
         "inception_resnet_v2": load_inceptionresnetv2
     }
 
-    for model_name, fn in model_fns.items():
+    for model_name, fn in model_files.items():
         print(f"\n===== {model_name.upper()} 5-FOLD ENSEMBLE TEST =====")
         preds, probs, labels = run_ensemble(test_loader, fn, model_name)
 
