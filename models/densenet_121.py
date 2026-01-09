@@ -4,30 +4,20 @@ from torchvision.models import densenet121, DenseNet121_Weights
 from torchvision import transforms
 import numpy as np
 from collections import Counter
-from support.LMDB import LMDBDataset
 from torch.utils.data import DataLoader
+from support.LMDB import LMDBDataset
+
+torch.backends.cudnn.benchmark = True
 
 NUM_FOLDS = 5
 NUM_CLASSES = 3
-EPOCHS = 20
+EPOCHS = 15
 PATIENCE = 4
-BATCH_SIZE = 64
+BATCH_SIZE = 32
 LMDB_ROOT = "./lmdbs"
 LR = 1e-4
+WD = 1e-4
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
-
-
-def build_densenet(num_classes=NUM_CLASSES, freeze_backbone=True):
-    model = densenet121(weights=DenseNet121_Weights.DEFAULT)
-
-    if freeze_backbone:
-        for p in model.features.parameters():
-            p.requires_grad = False
-
-    model.classifier = nn.Linear(1024, num_classes)
-    return model
-
-
 
 train_transform = transforms.Compose([
     transforms.Resize(256),
@@ -43,6 +33,15 @@ val_transform = transforms.Compose([
     transforms.ToTensor(),
 ])
 
+def build_densenet(num_classes=NUM_CLASSES, freeze_backbone=True):
+    model = densenet121(weights=DenseNet121_Weights.DEFAULT)
+
+    if freeze_backbone:
+        for p in model.features.parameters():
+            p.requires_grad = False
+
+    model.classifier = nn.Linear(1024, num_classes)
+    return model
 
 def make_weighted_loss(dataset, device):
     labels = [dataset[i][1] for i in range(len(dataset))]
@@ -57,15 +56,13 @@ def make_weighted_loss(dataset, device):
 
     return nn.CrossEntropyLoss(weight=weights)
 
-
 def make_optimizer(model, lr):
     return torch.optim.AdamW(
         filter(lambda p: p.requires_grad, model.parameters()),
         lr=lr,
-        weight_decay=1e-4
+        weight_decay=WD
     )
     
-
 def make_scheduler(optimizer):
     return torch.optim.lr_scheduler.ReduceLROnPlateau(
         optimizer,
@@ -73,7 +70,6 @@ def make_scheduler(optimizer):
         factor=0.5,
         patience=2,
     )
-
 
 def train_one_epoch(model, loader, optimizer, criterion, scaler):
     model.train()
@@ -99,7 +95,6 @@ def train_one_epoch(model, loader, optimizer, criterion, scaler):
 
     return total_loss / total, correct / total
 
-
 @torch.no_grad()
 def validate(model, loader, criterion):
     model.eval()
@@ -119,9 +114,7 @@ def validate(model, loader, criterion):
 
     return total_loss / total, correct / total
 
-
 fold_best_acc = []
-
 
 for fold in range(NUM_FOLDS):
     print(f"\n===== Fold {fold} =====")
@@ -191,8 +184,6 @@ for fold in range(NUM_FOLDS):
                 break
 
     fold_best_acc.append(best_val_acc)
-
-
 
 print("\n===== 5-Fold CV Results =====")
 for i, acc in enumerate(fold_best_acc):

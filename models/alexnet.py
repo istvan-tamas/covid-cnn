@@ -10,7 +10,7 @@ torch.backends.cudnn.benchmark = True
 
 NUM_FOLDS = 5
 NUM_CLASSES = 3
-BATCH_SIZE = 128
+BATCH_SIZE = 32
 EPOCHS = 15
 LR = 1e-4
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"

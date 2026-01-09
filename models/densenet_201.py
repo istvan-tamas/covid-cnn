@@ -6,17 +6,19 @@ from torchvision import transforms
 from torchvision.models import densenet201, DenseNet201_Weights
 from support.LMDB import LMDBDataset
 
+torch.backends.cudnn.benchmark = True
+
 NUM_FOLDS = 5
 NUM_CLASSES = 3
 EPOCHS = 15
 PATIENCE = 4
 BATCH_SIZE = 32
 LMDB_ROOT = "./lmdbs"
-LR = 3e-4
+LR = 1e-4
+WD = 1e-4
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
-
-train_tf = transforms.Compose([
+train_transform = transforms.Compose([
     transforms.Resize(256),
     transforms.RandomResizedCrop(224),
     transforms.RandomHorizontalFlip(),
@@ -27,7 +29,7 @@ train_tf = transforms.Compose([
     )
 ])
 
-val_tf = transforms.Compose([
+val_transform = transforms.Compose([
     transforms.Resize(256),
     transforms.CenterCrop(224),
     transforms.ToTensor(),
@@ -36,7 +38,6 @@ val_tf = transforms.Compose([
         std=[0.229, 0.224, 0.225]
     )
 ])
-
 
 def create_densenet201():
     weights = DenseNet201_Weights.DEFAULT
@@ -70,7 +71,7 @@ def train_one_fold(fold_idx, train_ds, val_ds):
     )
 
     criterion = nn.CrossEntropyLoss()
-    optimizer = AdamW(model.parameters(), lr=LR, weight_decay=1e-4)
+    optimizer = AdamW(model.parameters(), lr=LR, weight_decay=WD)
     scheduler = ReduceLROnPlateau(
         optimizer, mode="max", patience=2
     )
@@ -143,12 +144,12 @@ for fold in range(5):
 
     train_ds = LMDBDataset(
         f"{LMDB_ROOT}/fold_{fold}_train.lmdb",
-        transform=train_tf
+        transform=train_transform
     )
 
     val_ds = LMDBDataset(
         f"{LMDB_ROOT}/fold_{fold}_val.lmdb",
-        transform=val_tf
+        transform=val_transform
     )
 
     train_one_fold(fold, train_ds, val_ds)

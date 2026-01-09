@@ -6,18 +6,19 @@ from torch.optim import AdamW
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from support.LMDB import LMDBDataset
 
+torch.backends.cudnn.benchmark = True
+
 NUM_FOLDS = 5
 NUM_CLASSES = 3
 EPOCHS = 15
-PATIENCE = 2
+PATIENCE = 4
 BATCH_SIZE = 32
 LMDB_ROOT = "./lmdbs"
-LR = 3e-4
+LR = 1e-4
+WD = 1e-4
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
-from torchvision import transforms
-
-train_tf = transforms.Compose([
+train_transform = transforms.Compose([
     transforms.Resize(320),
     transforms.RandomResizedCrop(299),
     transforms.RandomHorizontalFlip(),
@@ -28,7 +29,7 @@ train_tf = transforms.Compose([
     )
 ])
 
-val_tf = transforms.Compose([
+val_transform = transforms.Compose([
     transforms.Resize(320),
     transforms.CenterCrop(299),
     transforms.ToTensor(),
@@ -60,7 +61,7 @@ def train_one_fold(fold_idx, train_ds, val_ds):
     )
 
     criterion = torch.nn.CrossEntropyLoss()
-    optimizer = AdamW(model.parameters(), lr=LR, weight_decay=1e-4)
+    optimizer = AdamW(model.parameters(), lr=LR, weight_decay=WD)
     scheduler = ReduceLROnPlateau(optimizer, mode="max", patience=PATIENCE)
     scaler = torch.amp.GradScaler("cuda")
 
@@ -124,15 +125,14 @@ def train_one_fold(fold_idx, train_ds, val_ds):
 
     return best_acc
 
-
 for fold in range(NUM_FOLDS):
     print(f"\n===== Fold {fold} =====")
 
     train_ds = LMDBDataset(
-        f"{LMDB_ROOT}/fold_{fold}_train.lmdb", transform=train_tf
+        f"{LMDB_ROOT}/fold_{fold}_train.lmdb", transform=train_transform
     )
     val_ds = LMDBDataset(
-        f"{LMDB_ROOT}/fold_{fold}_val.lmdb", transform=val_tf
+        f"{LMDB_ROOT}/fold_{fold}_val.lmdb", transform=val_transform
     )
 
     train_one_fold(fold, train_ds, val_ds)
