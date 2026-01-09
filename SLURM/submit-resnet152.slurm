@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH -A hpcteszt
-#SBATCH --job-name=resnet-152
+#SBATCH --job-name=resnet-152-train
 #SBATCH --time=1-00:00:00
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=16
@@ -18,4 +18,4 @@ export HF_HOME=/home/itamas/hpcteszt_scratch/itamas/COVID19-classification/
 
 source ../.venv/bin/activate
 
-srun python3 ./resnet_152.py
+python3 ./resnet_152.py

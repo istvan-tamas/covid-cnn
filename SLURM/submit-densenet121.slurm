@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH -A hpcteszt
-#SBATCH --job-name=densenet-121
+#SBATCH --job-name=densenet-121-train
 #SBATCH --time=1-00:00:00
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=16
