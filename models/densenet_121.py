@@ -177,11 +177,6 @@ for fold in range(NUM_FOLDS):
                 model.state_dict(),
                 f"checkpoints/densenet_121_fold_{fold}.pth"
             )
-        else:
-            no_improve += 1
-            if no_improve >= PATIENCE:
-                print("Early stopping")
-                break
 
     fold_best_acc.append(best_val_acc)
 
