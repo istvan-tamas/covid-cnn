@@ -1,3 +1,4 @@
+from datetime import datetime
 import torch
 import torch.nn as nn
 from torchvision.models import densenet121, DenseNet121_Weights
@@ -116,6 +117,8 @@ def validate(model, loader, criterion):
 
 fold_best_acc = []
 
+start = datetime.now() #timing!
+
 for fold in range(NUM_FOLDS):
     print(f"\n===== Fold {fold} =====")
 
@@ -175,7 +178,7 @@ for fold in range(NUM_FOLDS):
             no_improve = 0
             torch.save(
                 model.state_dict(),
-                f"checkpoints/densenet_121_fold_{fold}.pth"
+                f"checkpoints/densenet121_fold_{fold}.pth"
             )
 
     fold_best_acc.append(best_val_acc)
@@ -186,3 +189,4 @@ for i, acc in enumerate(fold_best_acc):
 
 print(f"Mean: {np.mean(fold_best_acc):.4f}")
 print(f"Std:  {np.std(fold_best_acc):.4f}")
+print("Training completed in: " + str(datetime.now() - start))
