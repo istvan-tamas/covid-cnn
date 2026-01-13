@@ -1,3 +1,4 @@
+from datetime import datetime
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -79,6 +80,8 @@ def validate(model, val_loader, criterion):
 # running the model on the folds
 fold_results = []
 
+start = datetime.now() #timing!
+
 for fold in range(NUM_FOLDS):
     print(f"\n===== Fold {fold} =====")
 
@@ -118,6 +121,7 @@ for fold in range(NUM_FOLDS):
 
     best_val_acc = 0
 
+
     for epoch in range(EPOCHS):
         print(f"Epoch {epoch + 1}/{EPOCHS}")
 
@@ -144,3 +148,5 @@ for fold in range(NUM_FOLDS):
             )
 
     fold_results.append(best_val_acc)
+    
+print("Training completed in: " + str(datetime.now() - start))
