@@ -189,4 +189,5 @@ for i, acc in enumerate(fold_best_acc):
 
 print(f"Mean: {np.mean(fold_best_acc):.4f}")
 print(f"Std:  {np.std(fold_best_acc):.4f}")
+
 print("Training completed in: " + str(datetime.now() - start))

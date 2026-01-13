@@ -140,4 +140,4 @@ for fold in range(NUM_FOLDS):
 
     train_one_fold(fold, train_ds, val_ds)
     
-start = datetime.now() #timing!
+print("Training completed in: " + str(datetime.now() - start))
