@@ -1,3 +1,4 @@
+from datetime import datetime
 import torch
 from torch import nn
 from torch.optim import AdamW
@@ -138,6 +139,8 @@ def train_one_fold(fold_idx, train_ds, val_ds):
 
     return best_acc
 
+start = datetime.now() #timing!
+
 for fold in range(NUM_FOLDS):
     print(f"\n===== Fold {fold} =====")
 
@@ -152,3 +155,6 @@ for fold in range(NUM_FOLDS):
     )
 
     train_one_fold(fold, train_ds, val_ds)
+    
+    
+print("Training completed in: " + str(datetime.now() - start))
