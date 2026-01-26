@@ -1,7 +1,7 @@
 from datetime import datetime
 import torch
 from torch import nn
-import timm
+from torchvision.models import vit_b_16
 from torch.amp import autocast, GradScaler
 from torch.utils.data import DataLoader
 from torch.optim import AdamW
@@ -42,11 +42,11 @@ val_tf = transforms.Compose([
     )
 ])
 
-def create_convnext():
-    model = timm.create_model(
-        "convnext_base",
-        pretrained=True,
-        num_classes=NUM_CLASSES
+def create_vit():
+    model = vit_b_16(weights="IMAGENET1K_V1")
+    model.heads.head = nn.Linear(
+        model.heads.head.in_features,
+        NUM_CLASSES
     )
     return model.to(DEVICE)
 
@@ -71,8 +71,7 @@ def train_one_epoch(model, loader, criterion, optimizer):
         scaler.update()
 
         total_loss += loss.item() * labels.size(0)
-        preds = outputs.argmax(1)
-        correct += (preds == labels).sum().item()
+        correct += (outputs.argmax(1) == labels).sum().item()
         total += labels.size(0)
 
     return total_loss / total, correct / total
@@ -91,40 +90,43 @@ def validate_one_epoch(model, loader, criterion):
             loss = criterion(outputs, labels)
 
         total_loss += loss.item() * labels.size(0)
-        preds = outputs.argmax(1)
-        correct += (preds == labels).sum().item()
+        correct += (outputs.argmax(1) == labels).sum().item()
         total += labels.size(0)
 
     return total_loss / total, correct / total
 
 
-def train_convnext_5fold():
+def train_vit_5fold():
     for fold in range(NUM_FOLDS):
-        print(f"\n===== CONVNEXT FOLD {fold} =====")
+        print(f"\n===== ViT FOLD {fold} =====")
 
         train_ds = LMDBDataset(f"{LMDB_ROOT}/fold_{fold}_train.lmdb", transform=train_tf)
         val_ds = LMDBDataset(f"{LMDB_ROOT}/fold_{fold}_val.lmdb", transform=val_tf)
 
         train_loader = DataLoader(
-            train_ds, batch_size=BATCH_SIZE, shuffle=True,
-            num_workers=4, pin_memory=True
+            train_ds, batch_size=BATCH_SIZE,
+            shuffle=True, num_workers=4, pin_memory=True
         )
         val_loader = DataLoader(
-            val_ds, batch_size=BATCH_SIZE, shuffle=False,
-            num_workers=4, pin_memory=True
+            val_ds, batch_size=BATCH_SIZE,
+            shuffle=False, num_workers=4, pin_memory=True
         )
 
-        model = create_convnext()
+        model = create_vit()
 
         criterion = nn.CrossEntropyLoss()
         optimizer = AdamW(model.parameters(), lr=LR, weight_decay=WD)
         scheduler = ReduceLROnPlateau(optimizer, mode="max", patience=PATIENCE)
 
-        best_val_acc = 0.0
+        best_val = 0.0
 
         for epoch in range(EPOCHS):
-            tr_loss, tr_acc = train_one_epoch(model, train_loader, criterion, optimizer)
-            val_loss, val_acc = validate_one_epoch(model, val_loader, criterion)
+            tr_loss, tr_acc = train_one_epoch(
+                model, train_loader, criterion, optimizer
+            )
+            val_loss, val_acc = validate_one_epoch(
+                model, val_loader, criterion
+            )
 
             scheduler.step(val_acc)
 
@@ -133,15 +135,15 @@ def train_convnext_5fold():
                 f"Train Acc {tr_acc:.4f} | Val Acc {val_acc:.4f}"
             )
 
-            if val_acc > best_val_acc:
-                best_val_acc = val_acc
+            if val_acc > best_val:
+                best_val = val_acc
                 torch.save(
                     model.state_dict(),
-                    f"checkpoints/convnext_fold_{fold}.pth"
+                    f"checkpoints/vit_fold_{fold}.pth"
                 )
-                
+
 start = datetime.now() #timing!
 
-train_convnext_5fold()
+train_vit_5fold()
 
 print("Training completed in: " + str(datetime.now() - start))
