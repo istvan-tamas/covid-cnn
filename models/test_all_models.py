@@ -5,7 +5,7 @@ from torchvision import transforms
 from torchvision.models import (
     alexnet,
     densenet121, densenet201,
-    resnet152
+    resnet152, vit_b_16
 )
 from sklearn.metrics import confusion_matrix, classification_report
 from collections import Counter
@@ -102,6 +102,15 @@ def load_convnext(ckpt_path):
     model.eval()
     return model
 
+def load_vit16(ckpt_path):
+    model = vit_b_16(weights=None)
+    model.heads.head = nn.Linear(model.heads.head.in_features,NUM_CLASSES)
+    model.load_state_dict(torch.load(ckpt_path, map_location=DEVICE))
+    model.to(DEVICE)
+    model.eval()
+    return model
+
+
 # ======================
 # ENSEMBLE FUNCTION
 # ======================
@@ -151,6 +160,7 @@ def main():
         "resnet152": load_resnet152,
         "inception_resnet_v2": load_inceptionresnetv2,
         "convnext": load_convnext,
+        "vit": load_vit16,
     }
 
     for model_name, fn in model_files.items():
