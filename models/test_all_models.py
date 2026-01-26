@@ -94,6 +94,14 @@ def load_inceptionresnetv2(ckpt_path):
     model.eval()
     return model
 
+def load_convnext(ckpt_path):
+    model = timm.create_model("convnext_base", pretrained=False, num_classes=NUM_CLASSES)
+    state = torch.load(ckpt_path, map_location=DEVICE)
+    model.load_state_dict(state)
+    model.to(DEVICE)
+    model.eval()
+    return model
+
 # ======================
 # ENSEMBLE FUNCTION
 # ======================
@@ -141,7 +149,8 @@ def main():
         "densenet_121": load_densenet121,
         "densenet201": load_densenet201,
         "resnet152": load_resnet152,
-        "inception_resnet_v2": load_inceptionresnetv2
+        "inception_resnet_v2": load_inceptionresnetv2,
+        "convnext": load_convnext,
     }
 
     for model_name, fn in model_files.items():
