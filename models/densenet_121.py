@@ -168,9 +168,10 @@ for fold in range(NUM_FOLDS):
         scheduler.step(val_acc)
 
         print(
-            f"Epoch {epoch+1:02d} | "
-            f"Train Acc {train_acc:.4f} | "
-            f"Val Acc {val_acc:.4f}"
+            f"Train Loss: {train_loss:.4f} | "
+            f"Train Acc: {train_acc:.4f} | "
+            f"Val Loss: {val_loss:.4f} | "
+            f"Val Acc: {val_acc:.4f}"
         )
 
         if val_acc > best_val_acc:

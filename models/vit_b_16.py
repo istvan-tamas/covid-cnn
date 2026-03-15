@@ -132,7 +132,10 @@ def train_vit_5fold():
 
             print(
                 f"Epoch {epoch}/{EPOCHS} | "
-                f"Train Acc {tr_acc:.4f} | Val Acc {val_acc:.4f}"
+                f"Train Loss: {tr_loss:.4f} | "
+                f"Train Acc: {tr_acc:.4f} | "
+                f"Val Loss: {val_loss:.4f} | "
+                f"Val Acc: {val_acc:.4f}"
             )
 
             if val_acc > best_val:
